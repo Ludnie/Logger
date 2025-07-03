@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QGridLayout,
     QPushButton, QLCDNumber, QStyle, QFileDialog,
-    QComboBox, QLabel, QMessageBox
+    QComboBox, QLabel, QMessageBox, QDoubleSpinBox
 )
 from PyQt5 import QtCore
 import serial
@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Temperaturverfolgung")
+        self.setWindowTitle("Temperaturlogger")
         self.setStyleSheet("QPushButton { padding: 6px; font-size: 14px; } QLabel { font-weight: bold; }")
 
         self.ser = None
@@ -55,6 +55,15 @@ class MainWindow(QMainWindow):
         self.bt_refresh_ports = QPushButton("Ports aktualisieren")
         self.bt_refresh_ports.clicked.connect(self.update_ports)
         layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
+
+        # Intervall-Einstellung
+        self.spin_interval = QDoubleSpinBox()
+        self.spin_interval.setRange(0.1, 60.0)  # Min: 100 ms, Max: 60 s
+        self.spin_interval.setSingleStep(0.1)
+        self.spin_interval.setValue(1.0)
+        self.spin_interval.setSuffix(" s")
+        layout.addWidget(QLabel("Messintervall:"), 4, 0)
+        layout.addWidget(self.spin_interval, 4, 1)
 
         # Start-/Stop-Knöpfe
         self.bt_start = QPushButton("Messung starten")
@@ -147,6 +156,8 @@ class MainWindow(QMainWindow):
         self.canvas.axes.set_ylabel("T in °C")
         self.canvas.draw()
 
+        interval_ms = int(self.spin_interval.value() * 1000)
+        self.timer.setInterval(interval_ms)
         self.timer.start()
         self.bt_start.setEnabled(False)
         self.bt_stop.setEnabled(True)
@@ -171,7 +182,11 @@ class MainWindow(QMainWindow):
 
             with open(f"{self.fileName}.csv", "a") as f:
                 writer = csv.writer(f, delimiter=",")
-                writer.writerow([datetime.now().strftime("%H:%M:%S"), duration_in_min, Tval])
+                writer.writerow([
+                    datetime.now().strftime("%H:%M:%S"),
+                    f"{duration_in_min:.4f}",
+                    Tval
+                ])
 
             self.update_plot()
             self.lcd_T.display(Tval)
