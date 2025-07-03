@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         self.spin_interval.setSuffix(" s")
         layout.addWidget(QLabel("Messintervall:"), 4, 0)
         layout.addWidget(self.spin_interval, 4, 1)
+        self.spin_interval.valueChanged.connect(self.update_timer_interval)
 
         # Start-/Stop-Knöpfe
         self.bt_start = QPushButton("Messung starten")
@@ -113,6 +114,13 @@ class MainWindow(QMainWindow):
         if self.fileName:
             self.fileName = self.fileName.rstrip(".csv")
 
+    def update_timer_interval(self):
+        if self.timer.isActive():
+            interval_ms = int(self.spin_interval.value() * 1000)
+            self.timer.setInterval(interval_ms)
+            print(f"Messintervall aktualisiert: {self.spin_interval.value():.2f} s")
+
+    
     def start(self):
         selected_port = self.cb_ports.currentData()
         if not selected_port:
