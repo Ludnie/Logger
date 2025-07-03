@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
                 return
 
             Tval = float(raw)
-            print(f"Messwert: {Tval}")
+            print(f"Messwert: {Tval:.3f}")
 
             duration = timedelta(seconds=time.perf_counter() - self.starttime)
             duration_in_min = round(duration.total_seconds(), 3) / 60
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
                 writer.writerow([
                     datetime.now().strftime("%H:%M:%S"),
                     f"{duration_in_min:.4f}",
-                    Tval
+                    f"{Tval:.3f}"
                 ])
 
             self.update_plot()
