@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         self.ser.reset_output_buffer()
 
         try:
-            with open(f"{self.fileName}.csv", "a") as f:
+            with open(f"{self.fileName}.csv", "a", newline='') as f:
                 writer = csv.writer(f, delimiter=",")
                 writer.writerow([f"# Datum: {current_date}; Uhrzeit: {current_time}"])
                 writer.writerow(["# Uhrzeit (HH:MM:SS)", "t (min)", "T (°C)"])
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
             self.t.append(duration_in_min)
             self.T.append(Tval)
 
-            with open(f"{self.fileName}.csv", "a") as f:
+            with open(f"{self.fileName}.csv", "a", newline='') as f:
                 writer = csv.writer(f, delimiter=",")
                 writer.writerow([
                     datetime.now().strftime("%H:%M:%S"),
