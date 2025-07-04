@@ -56,9 +56,14 @@ class MainWindow(QMainWindow):
         self.bt_refresh_ports.clicked.connect(self.update_ports)
         layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
 
+        self.bt_connect = QPushButton("Verbinden")
+        self.bt_connect.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        self.bt_connect.clicked.connect(self.connect_device)
+        layout.addWidget(self.bt_connect, 3, 0, 1, 2)
+
         # Info-Anzeige (Firmware, Seriennummer, Sensortyp)
         self.label_info_compact = QLabel("Firmware: - | SN: - | Sensor: -")
-        layout.addWidget(self.label_info_compact, 3, 0, 1, 2)
+        layout.addWidget(self.label_info_compact, 4, 0, 1, 2)
 
 
         # Intervall-Einstellung
@@ -74,6 +79,7 @@ class MainWindow(QMainWindow):
         # Start-/Stop-Knöpfe
         self.bt_start = QPushButton("Messung starten")
         self.bt_start.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.bt_start.setEnabled(False) # erst aktivieren, wenn ein Gerät verbunden ist
         self.bt_start.pressed.connect(self.start)
         layout.addWidget(self.bt_start, 9, 0, 1, 2)
 
@@ -86,7 +92,7 @@ class MainWindow(QMainWindow):
         # LCD-Anzeige
         self.lcd_T = QLCDNumber()
         self.lcd_T.setSegmentStyle(QLCDNumber.Flat)
-        layout.addWidget(self.lcd_T, 4, 0, 1, 2)
+        layout.addWidget(self.lcd_T, 5, 0, 1, 2)
 
         # Plot
         self.canvas = MplCanvas(self)
@@ -104,6 +110,21 @@ class MainWindow(QMainWindow):
             self.cb_ports.addItem(f"{port.device} - {port.description}", port.device)
         if not usb_ports:
             self.cb_ports.addItem("Keine USB-Ports gefunden", None)
+
+    def connect_device(self):
+        selected_port = self.cb_ports.currentData()
+        if not selected_port:
+            QMessageBox.critical(self, "Fehler", "Bitte wähle einen gültigen USB-Port aus.")
+            return
+
+        try:
+            self.ser = serial.Serial(selected_port, 115200, timeout=2)
+            time.sleep(1.5)  # Warten wegen Reset
+            self.read_device_info()
+            self.bt_start.setEnabled(True)
+            QMessageBox.information(self, "Verbunden", f"Verbindung zu {selected_port} erfolgreich.")
+        except serial.SerialException as e:
+            QMessageBox.critical(self, "Verbindungsfehler", f"Serieller Port konnte nicht geöffnet werden:\n{e}")
 
     def read_device_info(self):
         fw = sn = st = "-"
@@ -126,7 +147,9 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Fehler beim Abrufen der Geräteinformationen: {e}")
 
-        self.label_info_compact.setText(f"Firmware: {fw} | SN: {sn} | Sensor: {st}")
+        self.label_info_compact.setText(f"{fw} | {sn} | {st}")
+        self.setWindowTitle(f"Temperaturlogger – {sn} | {fw} | {st}")
+
 
     def saveFileDialog(self):
         options = QFileDialog.Options()
@@ -150,18 +173,9 @@ class MainWindow(QMainWindow):
 
     
     def start(self):
-        selected_port = self.cb_ports.currentData()
-        if not selected_port:
-            QMessageBox.critical(self, "Fehler", "Bitte wähle einen gültigen USB-Port aus.")
+        if not self.ser or not self.ser.is_open:
+            QMessageBox.critical(self, "Fehler", "Bitte stelle zuerst eine Verbindung her.")
             return
-
-        try:
-            self.ser = serial.Serial(selected_port, 115200, timeout=2)
-        except serial.SerialException as e:
-            QMessageBox.critical(self, "Verbindungsfehler", f"Serieller Port konnte nicht geöffnet werden:\n{e}")
-            return
-        
-        self.read_device_info()
 
         self.saveFileDialog()
         if not self.fileName:
