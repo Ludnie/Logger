@@ -56,32 +56,37 @@ class MainWindow(QMainWindow):
         self.bt_refresh_ports.clicked.connect(self.update_ports)
         layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
 
+        # Info-Anzeige (Firmware, Seriennummer, Sensortyp)
+        self.label_info_compact = QLabel("Firmware: - | SN: - | Sensor: -")
+        layout.addWidget(self.label_info_compact, 3, 0, 1, 2)
+
+
         # Intervall-Einstellung
         self.spin_interval = QDoubleSpinBox()
         self.spin_interval.setRange(0.1, 60.0)  # Min: 100 ms, Max: 60 s
         self.spin_interval.setSingleStep(0.1)
         self.spin_interval.setValue(1.0)
         self.spin_interval.setSuffix(" s")
-        layout.addWidget(QLabel("Messintervall:"), 4, 0)
-        layout.addWidget(self.spin_interval, 4, 1)
+        layout.addWidget(QLabel("Messintervall:"), 8, 0)
+        layout.addWidget(self.spin_interval, 8, 1)
         self.spin_interval.valueChanged.connect(self.update_timer_interval)
 
         # Start-/Stop-Knöpfe
         self.bt_start = QPushButton("Messung starten")
         self.bt_start.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.bt_start.pressed.connect(self.start)
-        layout.addWidget(self.bt_start, 5, 0, 1, 2)
+        layout.addWidget(self.bt_start, 9, 0, 1, 2)
 
         self.bt_stop = QPushButton("Messung stoppen")
         self.bt_stop.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
         self.bt_stop.setEnabled(False)
         self.bt_stop.pressed.connect(self.stop)
-        layout.addWidget(self.bt_stop, 6, 0, 1, 2)
+        layout.addWidget(self.bt_stop, 10, 0, 1, 2)
 
         # LCD-Anzeige
         self.lcd_T = QLCDNumber()
         self.lcd_T.setSegmentStyle(QLCDNumber.Flat)
-        layout.addWidget(self.lcd_T, 3, 0, 1, 2)
+        layout.addWidget(self.lcd_T, 4, 0, 1, 2)
 
         # Plot
         self.canvas = MplCanvas(self)
@@ -99,6 +104,29 @@ class MainWindow(QMainWindow):
             self.cb_ports.addItem(f"{port.device} - {port.description}", port.device)
         if not usb_ports:
             self.cb_ports.addItem("Keine USB-Ports gefunden", None)
+
+    def read_device_info(self):
+        fw = sn = st = "-"
+        try:
+            self.ser.write(b"i\n")
+            time.sleep(0.5)
+            info_lines = []
+            while self.ser.in_waiting:
+                line = self.ser.readline().decode("utf-8").strip()
+                info_lines.append(line)
+
+            for line in info_lines:
+                if "Firmware" in line:
+                    fw = line.split(":")[1].strip()
+                elif "Seriennummer" in line:
+                    sn = line.split(":")[1].strip()
+                elif "Sensor-Typ" in line:
+                    st = line.split(":")[1].strip()
+
+        except Exception as e:
+            print(f"Fehler beim Abrufen der Geräteinformationen: {e}")
+
+        self.label_info_compact.setText(f"Firmware: {fw} | SN: {sn} | Sensor: {st}")
 
     def saveFileDialog(self):
         options = QFileDialog.Options()
@@ -132,6 +160,8 @@ class MainWindow(QMainWindow):
         except serial.SerialException as e:
             QMessageBox.critical(self, "Verbindungsfehler", f"Serieller Port konnte nicht geöffnet werden:\n{e}")
             return
+        
+        self.read_device_info()
 
         self.saveFileDialog()
         if not self.fileName:
