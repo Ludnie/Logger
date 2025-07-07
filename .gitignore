@@ -1,1 +1,37 @@
-test.csv
+# pyinstaller build output
+/dist/
+/build/
+__pycache__/
+/*.spec
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Python bytecode
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# virtual environments (optional, falls du eines benutzt)
+venv/
+env/
+.venv/
+.env/
+
+# Logs oder temporäre Dateien
+*.log
+*.tmp
+*.bak
+
+# Editor-spezifisch (z. B. VSCode oder PyCharm)
+.vscode/
+.idea/
+
+# Sonstige von dir erzeugte Binärdateien
+*.exe
+*.app
