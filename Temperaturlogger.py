@@ -61,10 +61,20 @@ class MainWindow(QMainWindow):
         self.bt_connect.clicked.connect(self.connect_device)
         layout.addWidget(self.bt_connect, 3, 0, 1, 2)
 
+        self.bt_disconnect = QPushButton("Verbindung trennen")
+        self.bt_disconnect.setIcon(self.style().standardIcon(QStyle.SP_DialogCloseButton))
+        self.bt_disconnect.setEnabled(False)
+        self.bt_disconnect.pressed.connect(self.disconnect_serial)
+        layout.addWidget(self.bt_disconnect, 4, 0, 1, 2)
+
         # Info-Anzeige (Firmware, Seriennummer, Sensortyp)
         self.label_info_compact = QLabel("Firmware: - | SN: - | Sensor: -")
-        layout.addWidget(self.label_info_compact, 4, 0, 1, 2)
+        layout.addWidget(self.label_info_compact, 5, 0, 1, 2)
 
+        # LCD-Anzeige
+        self.lcd_T = QLCDNumber()
+        self.lcd_T.setSegmentStyle(QLCDNumber.Flat)
+        layout.addWidget(self.lcd_T, 6, 0, 1, 2)
 
         # Intervall-Einstellung
         self.spin_interval = QDoubleSpinBox()
@@ -88,11 +98,6 @@ class MainWindow(QMainWindow):
         self.bt_stop.setEnabled(False)
         self.bt_stop.pressed.connect(self.stop)
         layout.addWidget(self.bt_stop, 10, 0, 1, 2)
-
-        # LCD-Anzeige
-        self.lcd_T = QLCDNumber()
-        self.lcd_T.setSegmentStyle(QLCDNumber.Flat)
-        layout.addWidget(self.lcd_T, 5, 0, 1, 2)
 
         # Plot
         self.canvas = MplCanvas(self)
@@ -123,8 +128,20 @@ class MainWindow(QMainWindow):
             self.read_device_info()
             self.bt_start.setEnabled(True)
             QMessageBox.information(self, "Verbunden", f"Verbindung zu {selected_port} erfolgreich.")
+            self.bt_disconnect.setEnabled(True)
+            self.bt_connect.setEnabled(False)
+            self.bt_start.setEnabled(True)
         except serial.SerialException as e:
             QMessageBox.critical(self, "Verbindungsfehler", f"Serieller Port konnte nicht geöffnet werden:\n{e}")
+
+    def disconnect_serial(self):
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+            self.ser = None
+            QMessageBox.information(self, "Verbindung getrennt", "Die serielle Verbindung wurde getrennt.")
+        self.bt_disconnect.setEnabled(False)
+        self.bt_connect.setEnabled(True)
+        self.bt_start.setEnabled(False)
 
     def read_device_info(self):
         fw = sn = st = "-"
@@ -214,6 +231,8 @@ class MainWindow(QMainWindow):
         self.bt_start.setEnabled(False)
         self.bt_stop.setEnabled(True)
 
+        self.bt_disconnect.setEnabled(True)
+
     def getnewdata(self):
         try:
             self.ser.write(b"1\n")
@@ -262,6 +281,7 @@ class MainWindow(QMainWindow):
             self.ser.close()
         self.bt_start.setEnabled(True)
         self.bt_stop.setEnabled(False)
+        self.bt_disconnect.setEnabled(False)
 
     def closeEvent(self, event):
         self.stop()
