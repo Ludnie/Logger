@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
 
         self.bt_connect = QPushButton("Verbinden")
-        self.bt_connect.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        self.bt_connect.setIcon(self.style().standardIcon(QStyle.SP_CommandLink))
         self.bt_connect.clicked.connect(self.connect_device)
         layout.addWidget(self.bt_connect, 3, 0, 1, 2)
 
