@@ -282,6 +282,7 @@ class MainWindow(QMainWindow):
         self.bt_start.setEnabled(True)
         self.bt_stop.setEnabled(False)
         self.bt_disconnect.setEnabled(False)
+        self.bt_connect.setEnabled(True)
 
     def closeEvent(self, event):
         self.stop()
