@@ -117,6 +117,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.left_widget, 0, 0)
 
         # Plot + Toolbar
+        self.line = None
         self.canvas = MplCanvas(self)
         self.toolbar = NavigationToolbar(self.canvas, self)
         plot_layout = QGridLayout()
@@ -305,38 +306,56 @@ class MainWindow(QMainWindow):
             self.stop()
 
     def update_plot(self):
-        self.canvas.axes.clear()
-        self.canvas.axes.set_xlabel("t in min")
-        self.canvas.axes.set_ylabel("T in °C")
-        self.line, = self.canvas.axes.plot(self.t, self.T, 'r')
+        # Linie beim ersten Mal erstellen
+        if self.line is None:
+            self.line, = self.canvas.axes.plot([], [], 'r')
+            self.canvas.axes.set_xlabel("t in min")
+            self.canvas.axes.set_ylabel("T in °C")
 
-        # Min/Max ermitteln
-        if self.T:
-            min_T = min(self.T)
-            max_T = max(self.T)
+        # Daten aktualisieren
+        self.line.set_data(self.t, self.T)
 
-            # Gestrichelte Linien
-            self.canvas.axes.axhline(min_T, color='blue', linestyle='--', linewidth=1)
-            self.canvas.axes.axhline(max_T, color='green', linestyle='--', linewidth=1)
+        # Nur sichtbare Daten für Min/Max
+        x_start, x_end = self.canvas.axes.get_xlim()
+        visible_points = [(t, T) for t, T in zip(self.t, self.T) if x_start <= t <= x_end]
+        if not visible_points:
+            self.canvas.draw()
+            return
 
-            # Linke X-Grenze bestimmen
-            xmin = min(self.t) if self.t else 0
+        visible_t, visible_T = zip(*visible_points)
+        min_T = min(visible_T)
+        max_T = max(visible_T)
+        xmin = min(visible_t)
 
-            # Textbeschriftungen links
+        # Alte Min/Max-Linien entfernen (falls vorhanden)
+        for line in getattr(self, "minmax_lines", []):
+            line.remove()
+        for text in getattr(self, "minmax_texts", []):
+            text.remove()
+
+        # Neue Linien + Texte zeichnen
+        self.minmax_lines = [
+            self.canvas.axes.axhline(min_T, color='blue', linestyle='--', linewidth=1),
+            self.canvas.axes.axhline(max_T, color='green', linestyle='--', linewidth=1),
+        ]
+        self.minmax_texts = [
             self.canvas.axes.text(xmin, min_T, f"Min: {min_T:.2f} °C", color='blue',
-                                va='bottom', ha='left', fontsize=8, backgroundcolor='white')
+                                va='bottom', ha='left', fontsize=8, backgroundcolor='white'),
             self.canvas.axes.text(xmin, max_T, f"Max: {max_T:.2f} °C", color='green',
-                                va='top', ha='left', fontsize=8, backgroundcolor='white')
+                                va='top', ha='left', fontsize=8, backgroundcolor='white'),
+        ]
 
-        # Tooltip nach Clear neu setzen
-        self.annot = self.canvas.axes.annotate(
-            "", xy=(0, 0), xytext=(20, 20), textcoords="offset points",
-            bbox=dict(boxstyle="round", fc="w"),
-            arrowprops=dict(arrowstyle="->")
-        )
-        self.annot.set_visible(False)
+        self.canvas.axes.relim()
 
-        self.canvas.draw()
+        # Automatische Skalierung abhängig vom Toolbar-Modus
+        if self.toolbar.mode == '':
+            # Nichts aktiv: automatisch X- und Y-Achse anpassen
+            self.canvas.axes.autoscale_view()
+        else:
+            # Zoom oder Pan aktiv: nur Y-Achse neu skalieren
+            self.canvas.axes.autoscale_view(scalex=False)
+
+        self.canvas.draw_idle()
 
     def on_hover(self, event):
         if not hasattr(self, "line") or self.line is None:
