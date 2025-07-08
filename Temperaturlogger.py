@@ -20,7 +20,10 @@ from PyQt5.QtWidgets import (
 from PyQt5 import QtCore
 import serial
 import serial.tools.list_ports
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvasQTAgg as FigureCanvas,
+    NavigationToolbar2QT as NavigationToolbar
+)
 from matplotlib.figure import Figure
 
 
@@ -103,7 +106,9 @@ class MainWindow(QMainWindow):
 
         # Plot
         self.canvas = MplCanvas(self)
-        layout.addWidget(self.canvas, 0, 3, 10, 4)
+        layout.addWidget(self.canvas, 1, 3, 9, 4)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        layout.addWidget(self.toolbar, 0, 3, 1, 2)
 
         widget = QWidget()
         widget.setLayout(layout)
