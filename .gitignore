@@ -1,6 +1,6 @@
 # pyinstaller build output
-/dist/
-/build/
+/dist/*
+/build/*
 __pycache__/
 /*.spec
 
@@ -17,12 +17,6 @@ desktop.ini
 *.pyd
 *.pyc
 
-# virtual environments (optional, falls du eines benutzt)
-venv/
-env/
-.venv/
-.env/
-
 # Logs oder temporäre Dateien
 *.log
 *.tmp
@@ -35,3 +29,6 @@ env/
 # Sonstige von dir erzeugte Binärdateien
 *.exe
 *.app
+
+# Testausgaben
+test.csv
