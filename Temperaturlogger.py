@@ -310,7 +310,25 @@ class MainWindow(QMainWindow):
         self.canvas.axes.set_ylabel("T in °C")
         self.line, = self.canvas.axes.plot(self.t, self.T, 'r')
 
-        # Tooltip aktualisieren nach clear()
+        # Min/Max ermitteln
+        if self.T:
+            min_T = min(self.T)
+            max_T = max(self.T)
+
+            # Gestrichelte Linien
+            self.canvas.axes.axhline(min_T, color='blue', linestyle='--', linewidth=1)
+            self.canvas.axes.axhline(max_T, color='green', linestyle='--', linewidth=1)
+
+            # Linke X-Grenze bestimmen
+            xmin = min(self.t) if self.t else 0
+
+            # Textbeschriftungen links
+            self.canvas.axes.text(xmin, min_T, f"Min: {min_T:.2f} °C", color='blue',
+                                va='bottom', ha='left', fontsize=8, backgroundcolor='white')
+            self.canvas.axes.text(xmin, max_T, f"Max: {max_T:.2f} °C", color='green',
+                                va='top', ha='left', fontsize=8, backgroundcolor='white')
+
+        # Tooltip nach Clear neu setzen
         self.annot = self.canvas.axes.annotate(
             "", xy=(0, 0), xytext=(20, 20), textcoords="offset points",
             bbox=dict(boxstyle="round", fc="w"),
