@@ -3,7 +3,7 @@
 """
 Created on Tue Mar 25 13:11:17 2025
 
-v0.1.1
+v0.2.0
 
 @author: Julius Zimmermann & Ludwig Gabler
 """
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
         self.marked_annotations ={}
 
-        self.setWindowTitle("Temperaturlogger v0.1.1")
+        self.setWindowTitle("Temperaturlogger v0.2.0")
         self.setStyleSheet("QPushButton { padding: 6px; font-size: 14px; } QLabel { font-weight: bold; }")
 
         self.ser = None
