@@ -40,6 +40,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Schon hier für Hover-Tooltip initialisieren
+        self.t = []
+        self.T = []
+
         self.setWindowTitle("Temperaturlogger v0.1.1")
         self.setStyleSheet("QPushButton { padding: 6px; font-size: 14px; } QLabel { font-weight: bold; }")
 
@@ -118,6 +122,17 @@ class MainWindow(QMainWindow):
         plot_layout = QGridLayout()
         plot_layout.addWidget(self.toolbar, 0, 0)
         plot_layout.addWidget(self.canvas, 1, 0)
+
+        # Tooltip für den Plot
+        self.annot = self.canvas.axes.annotate(
+            "", xy=(0, 0), xytext=(20, 20), textcoords="offset points",
+            bbox=dict(boxstyle="round", fc="w"),
+            arrowprops=dict(arrowstyle="->")
+        )
+        self.annot.set_visible(False)
+
+        self.canvas.mpl_connect("motion_notify_event", self.on_hover)
+
 
         plot_widget = QWidget()
         plot_widget.setLayout(plot_layout)
@@ -220,8 +235,6 @@ class MainWindow(QMainWindow):
             self.ser.close()
             return
 
-        self.t = []
-        self.T = []
         now = datetime.now()
         current_date = now.strftime("%Y-%m-%d")
         current_time = now.strftime("%H:%M:%S")
@@ -292,8 +305,49 @@ class MainWindow(QMainWindow):
             self.stop()
 
     def update_plot(self):
-        self.canvas.axes.plot(self.t, self.T, 'r')
+        self.canvas.axes.clear()
+        self.canvas.axes.set_xlabel("t in min")
+        self.canvas.axes.set_ylabel("T in °C")
+        self.line, = self.canvas.axes.plot(self.t, self.T, 'r')
+
+        # Tooltip aktualisieren nach clear()
+        self.annot = self.canvas.axes.annotate(
+            "", xy=(0, 0), xytext=(20, 20), textcoords="offset points",
+            bbox=dict(boxstyle="round", fc="w"),
+            arrowprops=dict(arrowstyle="->")
+        )
+        self.annot.set_visible(False)
+
         self.canvas.draw()
+
+    def on_hover(self, event):
+        if not hasattr(self, "line") or self.line is None:
+            return
+        if event.inaxes != self.canvas.axes:
+            self.annot.set_visible(False)
+            self.canvas.draw_idle()
+            return
+
+        xdata = self.line.get_xdata()
+        ydata = self.line.get_ydata()
+
+        if len(xdata) == 0:
+            return
+
+        # Finde nächsten Punkt
+        distances = [(event.xdata - x)**2 + (event.ydata - y)**2 for x, y in zip(xdata, ydata)]
+        index = distances.index(min(distances))
+        x, y = xdata[index], ydata[index]
+
+        # Wenn Maus nah genug
+        if abs(event.xdata - x) < 0.2 and abs(event.ydata - y) < 1.0:
+            self.annot.xy = (x, y)
+            self.annot.set_text(f"t: {x:.2f} min\nT: {y:.2f} °C")
+            self.annot.set_visible(True)
+            self.canvas.draw_idle()
+        else:
+            self.annot.set_visible(False)
+            self.canvas.draw_idle()
 
     def stop(self):
         self.timer.stop()
