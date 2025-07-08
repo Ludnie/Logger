@@ -15,7 +15,8 @@ from datetime import timedelta, datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QGridLayout,
     QPushButton, QLCDNumber, QStyle, QFileDialog,
-    QComboBox, QLabel, QMessageBox, QDoubleSpinBox
+    QComboBox, QLabel, QMessageBox, QDoubleSpinBox,
+    QInputDialog
 )
 from PyQt5 import QtCore
 import serial
@@ -43,6 +44,8 @@ class MainWindow(QMainWindow):
         # Schon hier für Hover-Tooltip initialisieren
         self.t = []
         self.T = []
+
+        self.marked_annotations ={}
 
         self.setWindowTitle("Temperaturlogger v0.1.1")
         self.setStyleSheet("QPushButton { padding: 6px; font-size: 14px; } QLabel { font-weight: bold; }")
@@ -142,6 +145,11 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+
+        self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.canvas.setFocus()
+
+        self.canvas.keyPressEvent = self.keyPressEvent
 
     def update_ports(self):
         self.cb_ports.clear()
@@ -248,7 +256,7 @@ class MainWindow(QMainWindow):
             with open(f"{self.fileName}.csv", "a", newline='') as f:
                 writer = csv.writer(f, delimiter=",")
                 writer.writerow([f"# Datum: {current_date}; Uhrzeit: {current_time}"])
-                writer.writerow(["# Uhrzeit (HH:MM:SS)", "t (min)", "T (°C)"])
+                writer.writerow(["# Uhrzeit (HH:MM:SS)", "t (min)", "T (°C)", "Markierung"])
         except Exception as e:
             QMessageBox.critical(self, "Dateifehler", f"Fehler beim Schreiben der CSV-Datei:\n{e}")
             self.ser.close()
@@ -287,10 +295,13 @@ class MainWindow(QMainWindow):
 
             with open(f"{self.fileName}.csv", "a", newline='') as f:
                 writer = csv.writer(f, delimiter=",")
+                idx = len(self.t)
+                mark = ""  # standardmäßig leer
                 writer.writerow([
                     datetime.now().strftime("%H:%M:%S"),
                     f"{duration_in_min:.4f}",
-                    f"{Tval:.3f}"
+                    f"{Tval:.3f}",
+                    mark
                 ])
 
             self.update_plot()
@@ -385,6 +396,55 @@ class MainWindow(QMainWindow):
         else:
             self.annot.set_visible(False)
             self.canvas.draw_idle()
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_M:
+            self.mark_current_point()
+    
+    def mark_current_point(self):
+        if not self.t:
+            return
+
+        idx = len(self.t) - 1
+        t_val = self.t[idx]
+
+        # Dialog zur Eingabe eines Markierungsnamens
+        text, ok = QInputDialog.getText(self, "Markierung setzen", "Markierungsname:")
+        if not ok or not text.strip():
+            return  # Abbruch oder leer
+
+        self.marked_annotations[idx] = text.strip()
+
+        # Vertikale Linie und Text zeichnen
+        self.canvas.axes.axvline(t_val, color='orange', linestyle='--', linewidth=1)
+        self.canvas.axes.text(t_val, max(self.T), text.strip(), rotation=90, color='orange',
+                            va='top', ha='center', fontsize=8, backgroundcolor='white')
+
+        self.canvas.draw_idle()
+
+        self.append_marking_to_csv(idx, text.strip())
+
+    def append_marking_to_csv(self, idx, name):
+        # Versuch, zuletzt beschriebene Zeile zu ersetzen
+        try:
+            with open(f"{self.fileName}.csv", "r", newline='') as f:
+                rows = list(csv.reader(f))
+
+            # Finde Datenzeile (überspringe Kopfzeilen)
+            data_lines = [i for i, row in enumerate(rows) if not row[0].startswith("#")]
+            if idx < len(data_lines):
+                data_idx = data_lines[idx]
+                if len(rows[data_idx]) == 3:
+                    rows[data_idx].append(name)
+                else:
+                    rows[data_idx][3] = name
+
+                # Datei überschreiben
+                with open(f"{self.fileName}.csv", "w", newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerows(rows)
+        except Exception as e:
+            print(f"Fehler beim Aktualisieren der CSV-Datei: {e}")
 
     def stop(self):
         self.timer.stop()
