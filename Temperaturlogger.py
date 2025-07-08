@@ -3,7 +3,7 @@
 """
 Created on Tue Mar 25 13:11:17 2025
 
-v0.1.0
+v0.1.1
 
 @author: Julius Zimmermann & Ludwig Gabler
 """
@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Temperaturlogger v0.1.0")
+        self.setWindowTitle("Temperaturlogger v0.1.1")
         self.setStyleSheet("QPushButton { padding: 6px; font-size: 14px; } QLabel { font-weight: bold; }")
 
         self.ser = None
