@@ -50,36 +50,39 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.getnewdata)
 
         layout = QGridLayout()
+        
+        self.left_widget = QWidget()
+        self.left_layout = QGridLayout(self.left_widget)
 
         # Port-Auswahl
         self.cb_ports = QComboBox()
         self.update_ports()
-        layout.addWidget(QLabel("USB-Port auswählen:"), 0, 0, 1, 2)
-        layout.addWidget(self.cb_ports, 1, 0, 1, 2)
+        self.left_layout.addWidget(QLabel("USB-Port auswählen:"), 0, 0, 1, 2)
+        self.left_layout.addWidget(self.cb_ports, 1, 0, 1, 2)
 
         self.bt_refresh_ports = QPushButton("Ports aktualisieren")
         self.bt_refresh_ports.clicked.connect(self.update_ports)
-        layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
+        self.left_layout.addWidget(self.bt_refresh_ports, 2, 0, 1, 2)
 
         self.bt_connect = QPushButton("Verbinden")
         self.bt_connect.setIcon(self.style().standardIcon(QStyle.SP_CommandLink))
         self.bt_connect.clicked.connect(self.connect_device)
-        layout.addWidget(self.bt_connect, 3, 0, 1, 2)
+        self.left_layout.addWidget(self.bt_connect, 3, 0, 1, 2)
 
         self.bt_disconnect = QPushButton("Verbindung trennen")
         self.bt_disconnect.setIcon(self.style().standardIcon(QStyle.SP_DialogCloseButton))
         self.bt_disconnect.setEnabled(False)
         self.bt_disconnect.pressed.connect(self.disconnect_serial)
-        layout.addWidget(self.bt_disconnect, 4, 0, 1, 2)
+        self.left_layout.addWidget(self.bt_disconnect, 4, 0, 1, 2)
 
         # Info-Anzeige (Firmware, Seriennummer, Sensortyp)
         self.label_info_compact = QLabel("Firmware: - | SN: - | Sensor: -")
-        layout.addWidget(self.label_info_compact, 5, 0, 1, 2)
+        self.left_layout.addWidget(self.label_info_compact, 5, 0, 1, 2)
 
         # LCD-Anzeige
         self.lcd_T = QLCDNumber()
         self.lcd_T.setSegmentStyle(QLCDNumber.Flat)
-        layout.addWidget(self.lcd_T, 6, 0, 1, 2)
+        self.left_layout.addWidget(self.lcd_T, 6, 0, 1, 2)
 
         # Intervall-Einstellung
         self.spin_interval = QDoubleSpinBox()
@@ -87,8 +90,8 @@ class MainWindow(QMainWindow):
         self.spin_interval.setSingleStep(0.1)
         self.spin_interval.setValue(1.0)
         self.spin_interval.setSuffix(" s")
-        layout.addWidget(QLabel("Messintervall:"), 8, 0)
-        layout.addWidget(self.spin_interval, 8, 1)
+        self.left_layout.addWidget(QLabel("Messintervall:"), 8, 0)
+        self.left_layout.addWidget(self.spin_interval, 8, 1)
         self.spin_interval.valueChanged.connect(self.update_timer_interval)
 
         # Start-/Stop-Knöpfe
@@ -96,23 +99,33 @@ class MainWindow(QMainWindow):
         self.bt_start.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.bt_start.setEnabled(False) # erst aktivieren, wenn ein Gerät verbunden ist
         self.bt_start.pressed.connect(self.start)
-        layout.addWidget(self.bt_start, 9, 0, 1, 2)
+        self.left_layout.addWidget(self.bt_start, 9, 0, 1, 2)
 
         self.bt_stop = QPushButton("Messung stoppen")
         self.bt_stop.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
         self.bt_stop.setEnabled(False)
         self.bt_stop.pressed.connect(self.stop)
-        layout.addWidget(self.bt_stop, 10, 0, 1, 2)
+        self.left_layout.addWidget(self.bt_stop, 10, 0, 1, 2)
 
-        # Plot
+        self.left_widget.setFixedWidth(300)
+
+        main_layout = QGridLayout()
+        main_layout.addWidget(self.left_widget, 0, 0)
+
+        # Plot + Toolbar
         self.canvas = MplCanvas(self)
-        layout.addWidget(self.canvas, 1, 3, 9, 4)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        layout.addWidget(self.toolbar, 0, 3, 1, 2)
+        plot_layout = QGridLayout()
+        plot_layout.addWidget(self.toolbar, 0, 0)
+        plot_layout.addWidget(self.canvas, 1, 0)
 
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        plot_widget = QWidget()
+        plot_widget.setLayout(plot_layout)
+        main_layout.addWidget(plot_widget, 0, 1)
+
+        container = QWidget()
+        container.setLayout(main_layout)
+        self.setCentralWidget(container)
 
     def update_ports(self):
         self.cb_ports.clear()
